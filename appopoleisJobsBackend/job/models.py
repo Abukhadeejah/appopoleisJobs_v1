@@ -78,7 +78,19 @@ class Job(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     createdOn = models.DateTimeField(auto_now_add=True)
 
-    skills = models.ManyToManyField('Skill', related_name='jobs')
+    skills = models.ManyToManyField('Skill', related_name='jobs', blank=True)
+
+    slug = AutoSlugField(populate_from='title', unique=True, null=True)
+
+    def __str__(self):
+        return self.title
+    
+    def save(self, *args, **kwargs):
+        cords = geocoder.mapquest(self.location, key=os.environ.get('GEOCODER_API'))
+        lng = cords.lng
+        lat = cords.lat
+        self.point = Point(lng, lat)
+        super().save(*args, **kwargs)
     
 
 class Skill(models.Model):
@@ -87,4 +99,5 @@ class Skill(models.Model):
     def __str__(self):
         return self.skill
     
+
     
