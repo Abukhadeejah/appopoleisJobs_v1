@@ -4,10 +4,11 @@ from .models import Job, Skill
 class SkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
-        fields = '__all__'
+        fields = ['id', 'skill']
 
 
 class JobSerializer(serializers.ModelSerializer):
+    skills = SkillSerializer(many=True)
     class Meta:
         model = Job
         fields = '__all__'
