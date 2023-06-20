@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.shortcuts import get_object_or_404
+from .filters import JobsFilter
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -9,6 +10,9 @@ from django.db.models import Avg, Min, Max, Count
 from django.utils import timezone
 
 
+from rest_framework.pagination import PageNumberPagination
+
+
 from .serializers import JobSerializer, SkillSerializer, StatsSerializer
 from .models import Job, Skill
 
@@ -16,10 +20,24 @@ from .models import Job, Skill
 @api_view(['GET'])
 def getAllJobs(request):
 
-    jobs = Job.objects.all()
+    filterset = JobsFilter(request.GET, queryset=Job.objects.all().order_by('id'))
 
-    serializer = JobSerializer(jobs, many=True)
-    return Response(serializer.data)
+    count = filterset.qs.count()
+
+    #pagination
+    resPerPage = 3
+
+    paginator = PageNumberPagination()
+    paginator.page_size = resPerPage
+
+    queryset = paginator.paginate_queryset(filterset.qs, request)
+
+    serializer = JobSerializer(queryset, many=True)
+    return Response({
+        "count": count,
+        "resPerPage": resPerPage,
+        "jobs": serializer.data
+    })
 
 @api_view(['GET'])
 def getAllSkills(request):
@@ -65,7 +83,7 @@ def updateJob(request, slug):
     job.description = request.data['description']
     job.email = request.data['email']
     job.location = request.data['location']
-    job.jobType = request.data['jobType']
+    job.job_type = request.data['job_type']
     job.industry = request.data['industry']
     job.experience = request.data['experience']
     job.salary = request.data['salary']

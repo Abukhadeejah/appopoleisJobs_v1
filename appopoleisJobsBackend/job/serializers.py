@@ -5,7 +5,13 @@ class SkillSerializer(serializers.ModelSerializer):
     percentage = serializers.SerializerMethodField()
 
     def get_percentage(self, obj):
-        return obj.get('percentage', 0)
+        if isinstance(obj, dict):
+            return obj.get('percentage', 0)
+        elif isinstance(obj, Skill):
+            return getattr(obj, 'percentage', 0)
+        return 0
+
+
     
     class Meta:
         model = Skill
