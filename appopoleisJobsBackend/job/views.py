@@ -3,9 +3,13 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
+from rest_framework import serializers
+from django.db.models import Avg, Min, Max, Count
+from django.utils import timezone
 
 
-from .serializers import JobSerializer, SkillSerializer
+from .serializers import JobSerializer, SkillSerializer, StatsSerializer
 from .models import Job, Skill
 
 # Create your views here.
@@ -79,12 +83,47 @@ def updateJob(request, slug):
     return Response(serializer.data)
 
 
+@api_view(['DELETE'])
+def deleteJob(request, slug):
+    job = get_object_or_404(Job, slug=slug)
+    job.delete()
+    return Response({"message": "Job deleted successfully."}, status=status.HTTP_200_OK)
 
 
+@api_view(['GET'])
+def getTopicStats(request, topic):
+    args = {'title__icontains': topic}
+    jobs = Job.objects.filter(**args)
+
+    if len(jobs) == 0:
+        return Response({'message': 'No stats found for {topic}'.format(topic=topic)})
+
+    # Basic statistics
+    stats = jobs.aggregate(
+        total_jobs=Count('title'),
+        avg_positions=Avg('positions'),
+        avg_salary=Avg('salary'),
+        min_salary=Min('salary'),
+        max_salary=Max('salary')
+    )
+
+    # Skills in Demand
+    skills_in_demand = Skill.objects.filter(jobs__in=jobs).values('skill').annotate(total_jobs=Count('jobs')).order_by('-total_jobs')
+
+    # Calculate percentage for each skill
+    total_jobs = stats['total_jobs']
+    for skill in skills_in_demand:
+        skill['percentage'] = (skill['total_jobs'] / total_jobs) * 100
 
 
+    response_data = {
+        'total_jobs': stats['total_jobs'],
+        'avg_positions': stats['avg_positions'],
+        'avg_salary': stats['avg_salary'],
+        'min_salary': stats['min_salary'],
+        'max_salary': stats['max_salary'],
+        'skills': skills_in_demand,
+    }
 
-
-
-    serializer = JobSerializer(job, many=False)
+    serializer = StatsSerializer(response_data)  # Create a serializer instance
     return Response(serializer.data)
