@@ -44,3 +44,31 @@ def register(request):
         
     else:
         return Response(user.errors)
+    
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def currentUser(request):
+    user_serializer = UserSerializer(request.user)
+    return Response(user_serializer.data)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def updateUser(request):
+    user = request.user
+
+    data = request.data
+
+    user.first_name = data['first_name']
+    user.last_name = data['last_name']
+    user.username = data['email']
+    user.email = data['email']
+
+    if data['password'] != '':
+        user.password = make_password(data['password'])
+
+    user.save()
+
+    serializer = UserSerializer(user, many=False)
+    return Response(serializer.data)

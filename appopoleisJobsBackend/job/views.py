@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.shortcuts import get_object_or_404
 from .filters import JobsFilter
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
@@ -11,6 +11,8 @@ from django.utils import timezone
 
 
 from rest_framework.pagination import PageNumberPagination
+
+from rest_framework.permissions import IsAuthenticated
 
 
 from .serializers import JobSerializer, SkillSerializer, StatsSerializer
@@ -55,7 +57,9 @@ def getJob(request, slug):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def newJob(request):
+    request.data['user'] = request.user
     data = request.data
 
     # Extract the skills data from the request data
@@ -75,9 +79,15 @@ def newJob(request):
 
 
 @api_view(['PUT'])
+@permission_classes([IsAuthenticated])
 def updateJob(request, slug):
 
     job = get_object_or_404(Job, slug=slug)
+
+    if job.user != request.user:
+        return Response({ 
+            'message': 'You are not authorized to update this job' }, 
+            status=status.HTTP_403_FORBIDDEN)
 
     job.title = request.data['title']
     job.description = request.data['description']
@@ -102,8 +112,15 @@ def updateJob(request, slug):
 
 
 @api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
 def deleteJob(request, slug):
     job = get_object_or_404(Job, slug=slug)
+
+    if job.user != request.user:
+        return Response({ 
+            'message': 'You are not authorized to delete this job' }, 
+            status=status.HTTP_403_FORBIDDEN)
+
     job.delete()
     return Response({"message": "Job deleted successfully."}, status=status.HTTP_200_OK)
 

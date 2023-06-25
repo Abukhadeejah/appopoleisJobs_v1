@@ -10,8 +10,6 @@ class SkillSerializer(serializers.ModelSerializer):
         elif isinstance(obj, Skill):
             return getattr(obj, 'percentage', 0)
         return 0
-
-
     
     class Meta:
         model = Skill

@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 
 import geocoder
 import os
+import re
 
 from django.contrib.gis.db import models as gismodels
 from django.contrib.gis.geos import Point
@@ -78,6 +79,7 @@ class Job(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     createdOn = models.DateTimeField(auto_now_add=True)
 
+    required_skills = models.CharField(max_length=255, blank=True)
     skills = models.ManyToManyField('Skill', related_name='jobs', blank=True)
 
     slug = AutoSlugField(populate_from='title', unique=True, null=True)
@@ -91,6 +93,21 @@ class Job(models.Model):
         lat = cords.lat
         self.point = Point(lng, lat)
         super().save(*args, **kwargs)
+
+        # Split the required_skills string into individual skill names
+        skill_names = [skill.strip().capitalize() for skill in self.required_skills.split(",")]
+
+        # Normalize and validate each skill
+        normalized_skills = []
+        for skill_name in skill_names:
+            normalized_skill = skill_name.strip().capitalize()
+            if re.match(r'^[A-Z][a-zA-Z0-9]*$', normalized_skill):
+                normalized_skills.append(normalized_skill)
+
+        # Attach the skills to the job instance
+        for skill_name in skill_names:
+            skill, _ = Skill.objects.get_or_create(skill=skill_name)
+            self.skills.add(skill)
     
 
 class Skill(models.Model):
@@ -98,6 +115,7 @@ class Skill(models.Model):
 
     def __str__(self):
         return self.skill
+
     
 
     

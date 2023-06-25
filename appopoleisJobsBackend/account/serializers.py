@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+# from django.db.models import Q
 from rest_framework import serializers
 
 
@@ -13,7 +14,7 @@ class SignUpSerializer(serializers.ModelSerializer):
             'password': {'required': True, 'allow_blank': False, 'min_length': 6},
         }
 
- 
+
 
 class UserSerializer(serializers.ModelSerializer):
     resume = serializers.CharField(source='userprofile.resume')
